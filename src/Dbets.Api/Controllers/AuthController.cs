@@ -1,4 +1,6 @@
+using Dbets.Application.Commands.Users.ConfirmEmailCommand;
 using Dbets.Application.Commands.Users.CreateUserCommand;
+using Dbets.Application.Commands.Users.LoginUserCommand;
 using Dbets.Domain.Mediator;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,6 +31,42 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Erro durante o registro do usuário");
             return BadRequest(new { message = "O registro falhou", error = ex.Message });
+        }
+    }
+
+    [HttpPost("confirm-email")]
+    public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailCommand command)
+    {
+        try
+        {
+            var result = await _mediator.Send(command);
+            
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+            
+            return BadRequest(new { message = result.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro durante a confirmação do email");
+            return BadRequest(new { message = "A confirmação falhou", error = ex.Message });
+        }
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
+    {
+        try
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during user login");
+            return Unauthorized(new { message = "Login failed", error = ex.Message });
         }
     }
 }

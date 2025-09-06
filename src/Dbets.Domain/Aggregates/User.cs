@@ -37,9 +37,9 @@ public class User : AggregateRoot
             Active = true,
             EmailConfirmed = false,
             LoginAttempts = 0,
-            Theme = Theme.Light
+            Theme = Theme.light  // Alterado de Theme.Light para Theme.light
         };
-
+    
         user.RaiseEvent(new UserCreatedEvent(user.Id, user.Name, user.Email));
         return user;
     }
@@ -70,6 +70,31 @@ public class User : AggregateRoot
         //     handler.AddError("'Name' must not be empty.");
         // if (string.IsNullOrWhiteSpace(Email))
         //     handler.AddError("'Email' must not be empty.");
+    }
+
+    public void UpdateLastLogin()
+    {
+        LastLogin = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void IncrementLoginAttempts()
+    {
+        LoginAttempts++;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ResetLoginAttempts()
+    {
+        LoginAttempts = 0;
+        LockedUntil = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void LockAccount(DateTime lockUntil)
+    {
+        LockedUntil = lockUntil;
+        UpdatedAt = DateTime.UtcNow;
     }
 }
 

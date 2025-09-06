@@ -1,5 +1,6 @@
 using Dapper;
 using Dbets.Domain.Aggregates;
+using Dbets.Domain.Entities;
 using Dbets.Domain.Repositories;
 
 namespace Dbets.Infrastructure.Data.Repositories;
@@ -57,12 +58,30 @@ public class UserRepository : BaseRepository, IUserRepository
                    @Active, @EmailConfirmed, @LoginAttempts, @LockedUntil, 
                    @LastLogin, @Theme, @CreatedAt, @UpdatedAt)
             RETURNING id";
-
+    
+        var parameters = new
+        {
+            user.Id,
+            user.Name,
+            user.Email,
+            user.PasswordHash,
+            user.Phone,
+            user.ProfilePicture,
+            user.Active,
+            user.EmailConfirmed,
+            user.LoginAttempts,
+            user.LockedUntil,
+            user.LastLogin,
+            Theme = user.Theme.ToString().ToLower(), // Conversão explícita
+            user.CreatedAt,
+            user.UpdatedAt
+        };
+    
         var id = await Connection.QuerySingleAsync<Guid>(
             sql, 
-            user, 
+            parameters, 
             Transaction);
-
+    
         return id;
     }
 
@@ -76,10 +95,24 @@ public class UserRepository : BaseRepository, IUserRepository
                 locked_until = @LockedUntil, last_login = @LastLogin, 
                 theme = @Theme, updated_at = @UpdatedAt
             WHERE id = @Id";
-
+    
         await Connection.ExecuteAsync(
             sql, 
-            user, 
+            new {
+                user.Id,
+                user.Name,
+                user.Email,
+                user.PasswordHash,
+                user.Phone,
+                user.ProfilePicture,
+                user.Active,
+                user.EmailConfirmed,
+                user.LoginAttempts,
+                user.LockedUntil,
+                user.LastLogin,
+                Theme = user.Theme.ToString().ToLower(), // Converte para minúscula
+                UpdatedAt = DateTime.UtcNow
+            }, 
             Transaction);
     }
 
@@ -93,6 +126,54 @@ public class UserRepository : BaseRepository, IUserRepository
         await Connection.ExecuteAsync(
             sql, 
             new { Id = id, DeletedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }, 
+            Transaction);
+    }
+
+    public async Task<EmailConfirmation?> GetEmailConfirmationByTokenAsync(Guid token, CancellationToken cancellationToken = default)
+    {
+        const string sql = @"
+            SELECT id, user_id as UserId, token, expires_at as ExpiresAt, 
+                   confirmed, confirmed_at as ConfirmedAt, created_at as CreatedAt
+            FROM email_confirmations 
+            WHERE token = @Token";
+    
+        return await Connection.QueryFirstOrDefaultAsync<EmailConfirmation>(
+            sql, 
+            new { Token = token }, 
+            Transaction);
+    }
+
+    public async Task MarkEmailConfirmationAsUsedAsync(Guid token, CancellationToken cancellationToken = default)
+    {
+        const string sql = @"
+            UPDATE email_confirmations 
+            SET confirmed = true, confirmed_at = @ConfirmedAt
+            WHERE token = @Token";
+    
+        await Connection.ExecuteAsync(
+            sql, 
+            new { Token = token, ConfirmedAt = DateTime.UtcNow }, 
+            Transaction);
+    }
+
+    public async Task CreateEmailConfirmationAsync(
+        Guid userId, 
+        Guid token, 
+        DateTime expiresAt, 
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = @"
+            INSERT INTO email_confirmations (user_id, token, expires_at, confirmed, created_at)
+            VALUES (@UserId, @Token, @ExpiresAt, false, @CreatedAt)";
+    
+        await Connection.ExecuteAsync(
+            sql, 
+            new { 
+                UserId = userId, 
+                Token = token, 
+                ExpiresAt = expiresAt,
+                CreatedAt = DateTime.UtcNow 
+            }, 
             Transaction);
     }
 }
