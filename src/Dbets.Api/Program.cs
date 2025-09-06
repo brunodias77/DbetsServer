@@ -1,5 +1,7 @@
 using Dbets.Api.Configurations;
 using Dbets.Api.Middlewares;
+using Dbets.Domain.Services;
+using Dbets.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +12,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ILoggedUser, LoggedUser>();
 
 var app = builder.Build();
 
