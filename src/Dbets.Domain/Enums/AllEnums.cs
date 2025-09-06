@@ -1,6 +1,6 @@
 namespace Dbets.Domain.Enums;
 
-public enum Theme { Light, Dark }
+public enum Theme { light, dark }
 
 public enum GameStatus { Scheduled, Live, Finished, Postponed, Cancelled }
 
